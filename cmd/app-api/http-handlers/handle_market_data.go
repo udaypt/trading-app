@@ -12,7 +12,6 @@ import (
 	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 	"github.com/udaypt/trading-app/internal/httphandler"
 	"github.com/udaypt/trading-app/internal/infra/db/postgres"
-	"github.com/udaypt/trading-app/internal/security"
 )
 
 // MarketDataResponse is the JSON wrapper for GET /api/v1/market-data
@@ -42,7 +41,6 @@ func (app *MarketData) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *MarketData) handleMarketData(w http.ResponseWriter, r *http.Request) {
-	security.EnableCORS(w)
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
 		return

@@ -13,9 +13,8 @@ type contextKey string
 
 const UserContextKey contextKey = "user_claims"
 
-func JWTMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func JWT(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		security.EnableCORS(w)
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return

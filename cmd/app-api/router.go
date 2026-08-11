@@ -1,10 +1,11 @@
 package main
 
 import (
+	"net/http"
+
 	httphandlers "github.com/udaypt/trading-app/cmd/app-api/http-handlers"
 	router "github.com/udaypt/trading-app/internal/httphandler/usecase/router"
 	mw "github.com/udaypt/trading-app/internal/security/middleware"
-	"net/http"
 
 	"go.uber.org/dig"
 )
@@ -58,8 +59,9 @@ func newRouter(params routerParams) (*Router, error) {
 	} {
 		handleFunc := e.handler.Handle
 		if e.secured {
-			handleFunc = mw.JWTMiddleware(handleFunc)
+			handleFunc = mw.JWT(handleFunc)
 		}
+		handleFunc = mw.Cors(handleFunc)
 
 		http.HandleFunc(e.path, handleFunc)
 	}

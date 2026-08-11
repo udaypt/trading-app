@@ -8,4 +8,7 @@ const (
 	STOCK_HISTORY_API_URL = STOCK_API_BASE_URL + "/v8/finance/chart/%s?interval=1d&range=%s" // symbol, rangeParam
 
 	DB_CONNECTION_STRING = "postgres://postgres:example@localhost:5432/trading_dashboard?sslmode=disable"
+	JWT_SECRET           = "c257465c25bc4daecac2ac3d36fdce297e2ba92c"
+
+	CORS_ALLOWED_ORIGIN = "http://localhost:3000"
 )

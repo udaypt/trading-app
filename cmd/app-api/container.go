@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 
-	// "github.com/DTSL/corporate-organization-backend-go/internal/middleware/httpauth/tokenauth"
 	"github.com/pkg/errors"
 	"go.uber.org/dig"
 

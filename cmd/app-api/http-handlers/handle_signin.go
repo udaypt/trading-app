@@ -2,10 +2,11 @@ package httphandlers
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/udaypt/trading-app/internal/httphandler"
 	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 	"github.com/udaypt/trading-app/internal/security"
-	"net/http"
 )
 
 type SignIn struct {
@@ -25,7 +26,6 @@ func (app *SignIn) Handle(w http.ResponseWriter, r *http.Request) {
 
 // Endpoint: POST /api/v1/auth/login
 func (app *SignIn) handleSignIn(w http.ResponseWriter, r *http.Request) {
-	security.EnableCORS(w)
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
 		return

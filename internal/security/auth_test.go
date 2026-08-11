@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/udaypt/trading-app/config"
 )
 
 func TestHashPassword_CheckPasswordHash(t *testing.T) {
@@ -72,7 +73,7 @@ func TestGenerateJWT_ValidateJWT(t *testing.T) {
 			},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signed, err := token.SignedString(jwtSecret)
+		signed, err := token.SignedString([]byte(config.JWT_SECRET))
 		require.NoError(t, err)
 
 		_, err = ValidateJWT(signed)

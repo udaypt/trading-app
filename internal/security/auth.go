@@ -2,13 +2,13 @@ package security
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/udaypt/trading-app/config"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var jwtSecret = []byte("your-super-secret-key-keep-in-env") // In production, load from os.Getenv("JWT_SECRET")
 
 // Claims represents the JWT payload
 type Claims struct {
@@ -54,7 +54,7 @@ func GenerateJWT(userID int64, email string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(getSecret())
 }
 
 // ValidateJWT parses and verifies a token string
@@ -64,7 +64,7 @@ func ValidateJWT(tokenStr string) (*Claims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtSecret, nil
+		return getSecret(), nil
 	})
 
 	if err != nil || !token.Valid {
@@ -72,4 +72,12 @@ func ValidateJWT(tokenStr string) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func getSecret() []byte {
+	if os.Getenv("APP_ENV") == "prod" {
+		return []byte(os.Getenv("JWT_SECRET"))
+	}
+
+	return []byte(config.JWT_SECRET)
 }

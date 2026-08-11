@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestJWTMiddleware(t *testing.T) {
+func TestJWT(t *testing.T) {
 	nextCalled := func(called *bool) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			*called = true
@@ -21,7 +21,7 @@ func TestJWTMiddleware(t *testing.T) {
 
 	t.Run("OPTIONS preflight bypasses auth", func(t *testing.T) {
 		var called bool
-		handler := JWTMiddleware(nextCalled(&called))
+		handler := JWT(nextCalled(&called))
 
 		req := httptest.NewRequest(http.MethodOptions, "/api/v1/search", nil)
 		rec := httptest.NewRecorder()
@@ -29,12 +29,11 @@ func TestJWTMiddleware(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.False(t, called)
-		assert.Equal(t, "*", rec.Header().Get("Access-Control-Allow-Origin"))
 	})
 
 	t.Run("missing Authorization header is rejected", func(t *testing.T) {
 		var called bool
-		handler := JWTMiddleware(nextCalled(&called))
+		handler := JWT(nextCalled(&called))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/search", nil)
 		rec := httptest.NewRecorder()
@@ -46,7 +45,7 @@ func TestJWTMiddleware(t *testing.T) {
 
 	t.Run("malformed Authorization header is rejected", func(t *testing.T) {
 		var called bool
-		handler := JWTMiddleware(nextCalled(&called))
+		handler := JWT(nextCalled(&called))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/search", nil)
 		req.Header.Set("Authorization", "Basic abc123")
@@ -59,7 +58,7 @@ func TestJWTMiddleware(t *testing.T) {
 
 	t.Run("invalid token is rejected", func(t *testing.T) {
 		var called bool
-		handler := JWTMiddleware(nextCalled(&called))
+		handler := JWT(nextCalled(&called))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/search", nil)
 		req.Header.Set("Authorization", "Bearer not-a-real-token")
@@ -79,7 +78,7 @@ func TestJWTMiddleware(t *testing.T) {
 			gotClaims, _ = r.Context().Value(UserContextKey).(*security.Claims)
 			w.WriteHeader(http.StatusOK)
 		}
-		handler := JWTMiddleware(next)
+		handler := JWT(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/search", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
