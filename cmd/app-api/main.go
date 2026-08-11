@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+
+	mf "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
 )
 
 // main is not unit tested: http.ListenAndServe blocks until the process
@@ -17,6 +19,16 @@ func main() {
 		log.Fatalf("Server exited unexpectedly: %v", err)
 
 		return
+	}
+
+	// Load the mutual-fund master list into memory before the server accepts
+	// any traffic, so search has data to serve from the moment it's up.
+	err = cntr.Invoke(func(initializer *mf.MFStoreInitializer) error {
+		initializer.Initialize(ctx)
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("Server exited unexpectedly: %v", err)
 	}
 
 	port := ":8080"

@@ -1,7 +1,5 @@
 package trading
 
-import "context"
-
 type AssetType string
 
 const (
@@ -25,12 +23,4 @@ type SearchResult struct {
 	Type     AssetType `json:"type"`     // STOCK or MUTUAL_FUND
 	Symbol   string    `json:"symbol"`   // e.g., "RELIANCE.NS"
 	Exchange string    `json:"exchange"` // NSE, BSE, or AMC
-}
-
-type StockSearchProvider interface {
-	SearchStocks(ctx context.Context, query string) ([]SearchResult, error)
-}
-
-type MFSearchProvider interface {
-	SearchMutualFunds(ctx context.Context, query string) ([]SearchResult, error)
 }

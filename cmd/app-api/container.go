@@ -44,6 +44,22 @@ func getContainer(ctx context.Context) (*dig.Container, error) {
 			Resources: []any{mf.NewMFStore},
 		},
 		{
+			Name:      "Mutual-fund external API provider",
+			Resources: []any{mf.NewMFStoreProvider},
+		},
+		{
+			Name:      "Mutual-fund scheme syncer (retry + persist)",
+			Resources: []any{mf.NewMFStoreSyncer},
+		},
+		{
+			Name:      "Mutual-fund scheme loader (Postgres read)",
+			Resources: []any{mf.NewMFStoreLoader},
+		},
+		{
+			Name:      "Mutual-fund store initializer",
+			Resources: []any{mf.NewMFStoreInitializer},
+		},
+		{
 			Name:      "Sign in http handler",
 			Resources: []any{httphandlers.NewSignIn},
 		},

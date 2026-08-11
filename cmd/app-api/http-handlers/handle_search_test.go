@@ -1,7 +1,6 @@
 package httphandlers
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -59,18 +58,13 @@ func TestSearch_Handle(t *testing.T) {
 		stock.StockSearchAPIURL = stockSrv.URL
 		defer func() { stock.StockSearchAPIURL = origSearchURL }()
 
-		db, mock, err := sqlmock.New()
+		db, _, err := sqlmock.New()
 		require.NoError(t, err)
 		defer db.Close()
-		mock.ExpectQuery("SELECT scheme_code, scheme_name FROM mutual_fund_schemes").
-			WillReturnRows(sqlmock.NewRows([]string{"scheme_code", "scheme_name"}).
-				AddRow(1, "HDFC Top 100 Fund"))
-
 		repo := postgres.NewDBRepositoryWithDB(db)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		mfStore, err := mf.NewMFStore(ctx, repo)
-		require.NoError(t, err)
+
+		mfStore := mf.NewMFStore()
+		mfStore.SetSchemes([]mf.Scheme{{SchemeCode: 1, SchemeName: "HDFC Top 100 Fund"}})
 
 		app := NewSearch(mfStore, repo)
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?q=hdfc", nil)
@@ -93,18 +87,13 @@ func TestSearch_Handle(t *testing.T) {
 		stock.StockSearchAPIURL = stockSrv.URL
 		defer func() { stock.StockSearchAPIURL = origSearchURL }()
 
-		db, mock, err := sqlmock.New()
+		db, _, err := sqlmock.New()
 		require.NoError(t, err)
 		defer db.Close()
-		mock.ExpectQuery("SELECT scheme_code, scheme_name FROM mutual_fund_schemes").
-			WillReturnRows(sqlmock.NewRows([]string{"scheme_code", "scheme_name"}).
-				AddRow(1, "HDFC Top 100 Fund"))
-
 		repo := postgres.NewDBRepositoryWithDB(db)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		mfStore, err := mf.NewMFStore(ctx, repo)
-		require.NoError(t, err)
+
+		mfStore := mf.NewMFStore()
+		mfStore.SetSchemes([]mf.Scheme{{SchemeCode: 1, SchemeName: "HDFC Top 100 Fund"}})
 
 		app := NewSearch(mfStore, repo)
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/search?q=hdfc", nil)
