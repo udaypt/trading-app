@@ -26,14 +26,14 @@ type SearchAPIResponse struct {
 }
 
 type Search struct {
-	mfStore *mf.MFStore
-	repo    *postgres.DBRepository
+	mfStore     *mf.MFStore
+	stockSearch *stock.Search
 }
 
 func NewSearch(store *mf.MFStore, repo *postgres.DBRepository) *Search {
 	return &Search{
-		mfStore: store,
-		repo:    repo,
+		mfStore:     store,
+		stockSearch: stock.NewSearch(repo),
 	}
 }
 
@@ -71,7 +71,7 @@ func (app *Search) handleSearch(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer wg.Done()
 		var err error
-		stockResults, err = stock.SearchStocks(ctx, query, 5)
+		stockResults, err = app.stockSearch.Search(ctx, query, 5)
 		if err != nil {
 			log.Printf("[Warn] Stock search warning: %v", err)
 		}

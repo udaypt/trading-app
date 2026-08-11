@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/udaypt/trading-app/config"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/udaypt/trading-app/config"
 
 	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 )
