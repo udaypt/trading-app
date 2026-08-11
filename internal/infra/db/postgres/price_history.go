@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"fmt"
-	"trading-dashboard/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 )
 
 // BulkUpsertPriceHistory efficiently stores/updates price data points in PostgreSQL

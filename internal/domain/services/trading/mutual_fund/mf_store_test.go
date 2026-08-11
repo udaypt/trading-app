@@ -7,18 +7,29 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"trading-dashboard/internal/domain/usecase/trading"
-	"trading-dashboard/internal/infra/db/postgres"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestMain speeds up the whole package's retry-path tests by shrinking the
+// progressive backoff from seconds to milliseconds; individual tests that
+// need to observe real backoff timing (e.g. mid-wait cancellation) restore
+// a larger value locally.
+func TestMain(m *testing.M) {
+	syncRetryBaseWait = time.Millisecond
+	os.Exit(m.Run())
+}
 
 // syncBuffer is a concurrency-safe io.Writer, used to capture log output
 // from a background goroutine without racing on a plain bytes.Buffer.
@@ -256,6 +267,80 @@ func TestMFStore_syncAPIWithDB(t *testing.T) {
 		assert.Eventually(t, func() bool {
 			return mock.ExpectationsWereMet() == nil
 		}, time.Second, 10*time.Millisecond)
+	})
+}
+
+func TestMFStore_fetchSchemesWithRetry(t *testing.T) {
+	t.Run("succeeds after transient failures within the retry budget", func(t *testing.T) {
+		var attempts int32
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if atomic.AddInt32(&attempts, 1) < 3 {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode([]Scheme{{SchemeCode: 1, SchemeName: "Recovered Fund"}})
+		}))
+		defer srv.Close()
+
+		origURL := MFSyncAPIURL
+		MFSyncAPIURL = srv.URL
+		defer func() { MFSyncAPIURL = origURL }()
+
+		store := &MFStore{client: srv.Client()}
+		schemes, err := store.fetchSchemesWithRetry(context.Background())
+		require.NoError(t, err)
+		require.Len(t, schemes, 1)
+		assert.Equal(t, "Recovered Fund", schemes[0].SchemeName)
+		assert.EqualValues(t, 3, atomic.LoadInt32(&attempts))
+	})
+
+	t.Run("gives up after exhausting all progressive retries", func(t *testing.T) {
+		var attempts int32
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&attempts, 1)
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}))
+		defer srv.Close()
+
+		origURL := MFSyncAPIURL
+		MFSyncAPIURL = srv.URL
+		defer func() { MFSyncAPIURL = origURL }()
+
+		store := &MFStore{client: srv.Client()}
+		_, err := store.fetchSchemesWithRetry(context.Background())
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "after 4 attempts")
+		assert.EqualValues(t, syncMaxAttempts, atomic.LoadInt32(&attempts))
+	})
+
+	t.Run("stops retrying once the context is canceled during backoff", func(t *testing.T) {
+		origWait := syncRetryBaseWait
+		syncRetryBaseWait = 200 * time.Millisecond // long enough to cancel mid-wait
+		defer func() { syncRetryBaseWait = origWait }()
+
+		var attempts int32
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&attempts, 1)
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}))
+		defer srv.Close()
+
+		origURL := MFSyncAPIURL
+		MFSyncAPIURL = srv.URL
+		defer func() { MFSyncAPIURL = origURL }()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		store := &MFStore{client: srv.Client()}
+
+		go func() {
+			time.Sleep(20 * time.Millisecond) // after attempt 1 fails, while backoff is sleeping
+			cancel()
+		}()
+
+		_, err := store.fetchSchemesWithRetry(ctx)
+		assert.ErrorIs(t, err, context.Canceled)
+		assert.EqualValues(t, 1, atomic.LoadInt32(&attempts))
 	})
 }
 

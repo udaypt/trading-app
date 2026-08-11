@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"trading-dashboard/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"

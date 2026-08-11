@@ -7,9 +7,9 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/dig"
 
-	httphandlers "trading-dashboard/cmd/app-api/http-handlers"
-	mf "trading-dashboard/internal/domain/services/trading/mutual_fund"
-	db "trading-dashboard/internal/infra/db/postgres"
+	httphandlers "github.com/udaypt/trading-app/cmd/app-api/http-handlers"
+	mf "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
+	db "github.com/udaypt/trading-app/internal/infra/db/postgres"
 )
 
 // getContainer's error branches are not unit tested: every provider below is

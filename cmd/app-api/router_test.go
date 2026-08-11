@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	httphandlers "trading-dashboard/cmd/app-api/http-handlers"
+	httphandlers "github.com/udaypt/trading-app/cmd/app-api/http-handlers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"trading-dashboard/internal/security"
+	"github.com/udaypt/trading-app/internal/security"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"trading-dashboard/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

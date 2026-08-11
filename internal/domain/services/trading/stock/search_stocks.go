@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/udaypt/trading-app/config"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-	"trading-dashboard/config"
 
-	"trading-dashboard/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 )
 
 // Yahoo Stock Search Structs

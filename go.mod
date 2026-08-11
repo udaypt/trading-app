@@ -1,4 +1,4 @@
-module trading-dashboard
+module github.com/udaypt/trading-app
 
 go 1.26.3
 

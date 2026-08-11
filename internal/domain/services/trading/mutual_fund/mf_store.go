@@ -9,9 +9,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"trading-dashboard/config"
-	"trading-dashboard/internal/domain/usecase/trading"
-	"trading-dashboard/internal/infra/db/postgres"
+
+	"github.com/udaypt/trading-app/config"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 )
 
 type Scheme struct {
@@ -93,27 +94,18 @@ func (s *MFStore) Search(query string, limit int) []trading.SearchResult {
 // be redirected to an httptest server from this and other packages' tests.
 var MFSyncAPIURL = config.MF_API_BASE_URL
 
+// syncMaxAttempts is the initial attempt plus 3 progressive retries.
+const syncMaxAttempts = 4
+
+// syncRetryBaseWait is overridden in tests to keep retry-path tests fast.
+var syncRetryBaseWait = 1 * time.Second
+
 func (s *MFStore) syncAPIWithDB(ctx context.Context) error {
 	log.Println("[MFStore] Fetching latest mutual fund master list from API...")
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, MFSyncAPIURL, nil)
+	apiSchemes, err := s.fetchSchemesWithRetry(ctx)
 	if err != nil {
 		return err
-	}
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("http fetch error: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("mfapi returned status code: %d", resp.StatusCode)
-	}
-
-	var apiSchemes []Scheme
-	if err := json.NewDecoder(resp.Body).Decode(&apiSchemes); err != nil {
-		return fmt.Errorf("failed to decode scheme payload: %w", err)
 	}
 
 	log.Printf("[MFStore] Downloaded %d schemes from API. Persisting to PostgreSQL...", len(apiSchemes))
@@ -136,6 +128,62 @@ func (s *MFStore) syncAPIWithDB(ctx context.Context) error {
 	s.mu.Unlock()
 
 	return nil
+}
+
+// fetchSchemesWithRetry calls the mfapi master-list endpoint, retrying on
+// any failure (network error, non-200 status, or malformed body) with
+// progressively increasing backoff between attempts: 1s, 2s, then 4s.
+func (s *MFStore) fetchSchemesWithRetry(ctx context.Context) ([]Scheme, error) {
+	var lastErr error
+
+	for attempt := 1; attempt <= syncMaxAttempts; attempt++ {
+		schemes, err := s.fetchSchemes(ctx)
+		if err == nil {
+			return schemes, nil
+		}
+
+		lastErr = err
+		log.Printf("[MFStore] Attempt %d/%d to fetch mutual fund master list failed: %v", attempt, syncMaxAttempts, err)
+
+		if attempt == syncMaxAttempts {
+			break
+		}
+
+		wait := syncRetryBaseWait * time.Duration(1<<(attempt-1)) // 1s, 2s, 4s, ...
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(wait):
+		}
+	}
+
+	return nil, fmt.Errorf("failed to fetch mutual fund master list after %d attempts: %w", syncMaxAttempts, lastErr)
+}
+
+// fetchSchemes performs a single attempt at fetching and decoding the
+// mfapi master-list response.
+func (s *MFStore) fetchSchemes(ctx context.Context) ([]Scheme, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, MFSyncAPIURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http fetch error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("mfapi returned status code: %d", resp.StatusCode)
+	}
+
+	var apiSchemes []Scheme
+	if err := json.NewDecoder(resp.Body).Decode(&apiSchemes); err != nil {
+		return nil, fmt.Errorf("failed to decode scheme payload: %w", err)
+	}
+
+	return apiSchemes, nil
 }
 
 func (s *MFStore) startBackgroundSync(ctx context.Context, interval time.Duration) {

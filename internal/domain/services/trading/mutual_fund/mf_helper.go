@@ -1,6 +1,6 @@
 package mutualfund
 
-import "trading-dashboard/internal/infra/db/postgres"
+import "github.com/udaypt/trading-app/internal/infra/db/postgres"
 
 func convertToDBRecords(schemes []Scheme) []postgres.SchemeRecord {
 	records := make([]postgres.SchemeRecord, len(schemes))

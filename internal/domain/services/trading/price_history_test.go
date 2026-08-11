@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"trading-dashboard/internal/domain/usecase/trading"
-	"trading-dashboard/internal/infra/db/postgres"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"

@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/dig"
 
-	router "trading-dashboard/internal/httphandler/usecase/router"
+	router "github.com/udaypt/trading-app/internal/httphandler/usecase/router"
 )
 
 func HandleHttp(writer http.ResponseWriter, request *http.Request, handle http.HandlerFunc) {

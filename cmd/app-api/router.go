@@ -1,10 +1,10 @@
 package main
 
 import (
+	httphandlers "github.com/udaypt/trading-app/cmd/app-api/http-handlers"
+	router "github.com/udaypt/trading-app/internal/httphandler/usecase/router"
+	mw "github.com/udaypt/trading-app/internal/security/middleware"
 	"net/http"
-	httphandlers "trading-dashboard/cmd/app-api/http-handlers"
-	router "trading-dashboard/internal/httphandler/usecase/router"
-	mw "trading-dashboard/internal/security/middleware"
 
 	"go.uber.org/dig"
 )

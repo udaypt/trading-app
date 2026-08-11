@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"trading-dashboard/config"
-	"trading-dashboard/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/config"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 )
 
 // Stock Historical Chart Structs

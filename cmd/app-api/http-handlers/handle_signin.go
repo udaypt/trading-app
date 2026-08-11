@@ -2,10 +2,10 @@ package httphandlers
 
 import (
 	"encoding/json"
+	"github.com/udaypt/trading-app/internal/httphandler"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
+	"github.com/udaypt/trading-app/internal/security"
 	"net/http"
-	"trading-dashboard/internal/httphandler"
-	"trading-dashboard/internal/infra/db/postgres"
-	"trading-dashboard/internal/security"
 )
 
 type SignIn struct {

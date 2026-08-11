@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/udaypt/trading-app/config"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 	"net/http"
 	"strconv"
 	"time"
-	"trading-dashboard/config"
-	"trading-dashboard/internal/domain/usecase/trading"
 )
 
 // MFapi Historical NAV Structs

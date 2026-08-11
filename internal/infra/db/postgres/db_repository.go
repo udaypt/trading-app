@@ -3,7 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"trading-dashboard/config"
+	"github.com/udaypt/trading-app/config"
 
 	_ "github.com/lib/pq"
 )

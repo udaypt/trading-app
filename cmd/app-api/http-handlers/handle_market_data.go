@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	tracing_svc "trading-dashboard/internal/domain/services/trading"
-	"trading-dashboard/internal/domain/usecase/trading"
-	"trading-dashboard/internal/httphandler"
-	"trading-dashboard/internal/infra/db/postgres"
-	"trading-dashboard/internal/security"
+	tracing_svc "github.com/udaypt/trading-app/internal/domain/services/trading"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/httphandler"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
+	"github.com/udaypt/trading-app/internal/security"
 )
 
 // MarketDataResponse is the JSON wrapper for GET /api/v1/market-data

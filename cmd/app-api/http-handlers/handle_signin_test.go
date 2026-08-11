@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"trading-dashboard/internal/infra/db/postgres"
-	"trading-dashboard/internal/security"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
+	"github.com/udaypt/trading-app/internal/security"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"

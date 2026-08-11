@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"trading-dashboard/internal/security"
+	"github.com/udaypt/trading-app/internal/security"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"

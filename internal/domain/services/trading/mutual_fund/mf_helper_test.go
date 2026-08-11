@@ -3,7 +3,7 @@ package mutualfund
 import (
 	"testing"
 
-	"trading-dashboard/internal/infra/db/postgres"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 
 	"github.com/stretchr/testify/assert"
 )

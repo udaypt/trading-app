@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	mf "trading-dashboard/internal/domain/services/trading/mutual_fund"
-	"trading-dashboard/internal/domain/services/trading/stock"
-	"trading-dashboard/internal/domain/usecase/trading"
-	"trading-dashboard/internal/infra/db/postgres"
+	mf "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
+	"github.com/udaypt/trading-app/internal/domain/services/trading/stock"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
+	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 )
 
 type PriceHistory struct {

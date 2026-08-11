@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	mf "trading-dashboard/internal/domain/services/trading/mutual_fund"
-	"trading-dashboard/internal/domain/services/trading/stock"
+	mf "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
+	"github.com/udaypt/trading-app/internal/domain/services/trading/stock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

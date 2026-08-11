@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"trading-dashboard/internal/security"
+	"github.com/udaypt/trading-app/internal/security"
 )
 
 type contextKey string
