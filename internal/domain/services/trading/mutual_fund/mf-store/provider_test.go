@@ -1,4 +1,4 @@
-package mutualfund
+package mfstore
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	mutualfund "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,9 +26,9 @@ func withMFSyncServer(t *testing.T, handler http.HandlerFunc) *http.Client {
 	return srv.Client()
 }
 
-func TestMFStoreProvider_Fetch(t *testing.T) {
+func TestProvider_Fetch(t *testing.T) {
 	t.Run("decodes a successful response", func(t *testing.T) {
-		payload := []Scheme{
+		payload := []mutualfund.Scheme{
 			{SchemeCode: 10, SchemeName: "Test Fund One"},
 			{SchemeCode: 11, SchemeName: "Test Fund Two"},
 		}
@@ -35,7 +37,7 @@ func TestMFStoreProvider_Fetch(t *testing.T) {
 			json.NewEncoder(w).Encode(payload)
 		})
 
-		provider := &MFStoreProvider{client: client}
+		provider := &Provider{client: client}
 		schemes, err := provider.Fetch(context.Background())
 		require.NoError(t, err)
 		assert.Len(t, schemes, 2)
@@ -47,7 +49,7 @@ func TestMFStoreProvider_Fetch(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
-		provider := &MFStoreProvider{client: client}
+		provider := &Provider{client: client}
 		_, err := provider.Fetch(context.Background())
 		assert.Error(t, err)
 	})
@@ -58,7 +60,7 @@ func TestMFStoreProvider_Fetch(t *testing.T) {
 			w.Write([]byte("not json"))
 		})
 
-		provider := &MFStoreProvider{client: client}
+		provider := &Provider{client: client}
 		_, err := provider.Fetch(context.Background())
 		assert.Error(t, err)
 	})
@@ -68,7 +70,7 @@ func TestMFStoreProvider_Fetch(t *testing.T) {
 		MFSyncAPIURL = "http://example.com/\n"
 		t.Cleanup(func() { MFSyncAPIURL = orig })
 
-		provider := &MFStoreProvider{client: &http.Client{Timeout: time.Second}}
+		provider := &Provider{client: &http.Client{Timeout: time.Second}}
 		_, err := provider.Fetch(context.Background())
 		assert.Error(t, err)
 	})
@@ -82,14 +84,14 @@ func TestMFStoreProvider_Fetch(t *testing.T) {
 		MFSyncAPIURL = closedURL
 		t.Cleanup(func() { MFSyncAPIURL = orig })
 
-		provider := &MFStoreProvider{client: &http.Client{Timeout: time.Second}}
+		provider := &Provider{client: &http.Client{Timeout: time.Second}}
 		_, err := provider.Fetch(context.Background())
 		assert.Error(t, err)
 	})
 }
 
-func TestNewMFStoreProvider(t *testing.T) {
-	provider := NewMFStoreProvider()
+func TestNewProvider(t *testing.T) {
+	provider := NewProvider()
 	require.NotNil(t, provider)
 	require.NotNil(t, provider.client)
 }

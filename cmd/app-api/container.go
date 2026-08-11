@@ -8,6 +8,7 @@ import (
 
 	httphandlers "github.com/udaypt/trading-app/cmd/app-api/http-handlers"
 	mf "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
+	mfstore "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund/mf-store"
 	db "github.com/udaypt/trading-app/internal/infra/db/postgres"
 )
 
@@ -45,19 +46,19 @@ func getContainer(ctx context.Context) (*dig.Container, error) {
 		},
 		{
 			Name:      "Mutual-fund external API provider",
-			Resources: []any{mf.NewMFStoreProvider},
+			Resources: []any{mfstore.NewProvider},
 		},
 		{
 			Name:      "Mutual-fund scheme syncer (retry + persist)",
-			Resources: []any{mf.NewMFStoreSyncer},
+			Resources: []any{mfstore.NewSyncer},
 		},
 		{
 			Name:      "Mutual-fund scheme loader (Postgres read)",
-			Resources: []any{mf.NewMFStoreLoader},
+			Resources: []any{mfstore.NewLoader},
 		},
 		{
 			Name:      "Mutual-fund store initializer",
-			Resources: []any{mf.NewMFStoreInitializer},
+			Resources: []any{mfstore.NewInitializer},
 		},
 		{
 			Name:      "Sign in http handler",

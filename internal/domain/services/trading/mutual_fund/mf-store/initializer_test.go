@@ -1,4 +1,4 @@
-package mutualfund
+package mfstore
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	mutualfund "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
 	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMFStoreInitializer_Initialize(t *testing.T) {
+func TestInitializer_Initialize(t *testing.T) {
 	t.Run("serves schemes already cached in postgres without calling the API", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
@@ -28,10 +29,10 @@ func TestMFStoreInitializer_Initialize(t *testing.T) {
 			t.Fatal("external API should not be called when postgres already has data")
 		})
 
-		store := NewMFStore()
-		loader := NewMFStoreLoader(repo)
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}, repo: repo}
-		initializer := NewMFStoreInitializer(store, loader, syncer)
+		store := mutualfund.NewMFStore()
+		loader := NewLoader(repo)
+		syncer := &Syncer{provider: &Provider{client: client}, repo: repo}
+		initializer := NewInitializer(store, loader, syncer)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -50,16 +51,16 @@ func TestMFStoreInitializer_Initialize(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"scheme_code", "scheme_name"}))
 
 		repo := postgres.NewDBRepositoryWithDB(db)
-		payload := []Scheme{{SchemeCode: 99, SchemeName: "Seeded Fund"}}
+		payload := []mutualfund.Scheme{{SchemeCode: 99, SchemeName: "Seeded Fund"}}
 		client := withMFSyncServer(t, func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(payload)
 		})
 
-		store := NewMFStore()
-		loader := NewMFStoreLoader(repo)
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}, repo: repo}
-		initializer := NewMFStoreInitializer(store, loader, syncer)
+		store := mutualfund.NewMFStore()
+		loader := NewLoader(repo)
+		syncer := &Syncer{provider: &Provider{client: client}, repo: repo}
+		initializer := NewInitializer(store, loader, syncer)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -81,10 +82,10 @@ func TestMFStoreInitializer_Initialize(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
-		store := NewMFStore()
-		loader := NewMFStoreLoader(repo)
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}, repo: repo}
-		initializer := NewMFStoreInitializer(store, loader, syncer)
+		store := mutualfund.NewMFStore()
+		loader := NewLoader(repo)
+		syncer := &Syncer{provider: &Provider{client: client}, repo: repo}
+		initializer := NewInitializer(store, loader, syncer)
 
 		assert.Panics(t, func() {
 			initializer.Initialize(context.Background())

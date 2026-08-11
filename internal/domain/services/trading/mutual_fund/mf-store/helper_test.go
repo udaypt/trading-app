@@ -1,8 +1,9 @@
-package mutualfund
+package mfstore
 
 import (
 	"testing"
 
+	mutualfund "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
 	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,7 @@ import (
 func TestConvertToDBRecords(t *testing.T) {
 	tests := []struct {
 		name    string
-		schemes []Scheme
+		schemes []mutualfund.Scheme
 		want    []postgres.SchemeRecord
 	}{
 		{
@@ -21,12 +22,12 @@ func TestConvertToDBRecords(t *testing.T) {
 		},
 		{
 			name:    "empty input produces empty slice",
-			schemes: []Scheme{},
+			schemes: []mutualfund.Scheme{},
 			want:    []postgres.SchemeRecord{},
 		},
 		{
 			name: "maps fields in order",
-			schemes: []Scheme{
+			schemes: []mutualfund.Scheme{
 				{SchemeCode: 101, SchemeName: "Alpha Fund"},
 				{SchemeCode: 102, SchemeName: "Beta Fund"},
 			},
@@ -49,24 +50,24 @@ func TestConvertFromDBRecords(t *testing.T) {
 	tests := []struct {
 		name    string
 		records []postgres.SchemeRecord
-		want    []Scheme
+		want    []mutualfund.Scheme
 	}{
 		{
 			name:    "nil input produces empty slice",
 			records: nil,
-			want:    []Scheme{},
+			want:    []mutualfund.Scheme{},
 		},
 		{
 			name:    "empty input produces empty slice",
 			records: []postgres.SchemeRecord{},
-			want:    []Scheme{},
+			want:    []mutualfund.Scheme{},
 		},
 		{
 			name: "maps fields in order",
 			records: []postgres.SchemeRecord{
 				{SchemeCode: 201, SchemeName: "Gamma Fund"},
 			},
-			want: []Scheme{
+			want: []mutualfund.Scheme{
 				{SchemeCode: 201, SchemeName: "Gamma Fund"},
 			},
 		},
@@ -81,7 +82,7 @@ func TestConvertFromDBRecords(t *testing.T) {
 }
 
 func TestConvertRoundTrip(t *testing.T) {
-	original := []Scheme{{SchemeCode: 5, SchemeName: "Round Trip Fund"}}
+	original := []mutualfund.Scheme{{SchemeCode: 5, SchemeName: "Round Trip Fund"}}
 	got := convertFromDBRecords(convertToDBRecords(original))
 	assert.Equal(t, original, got)
 }

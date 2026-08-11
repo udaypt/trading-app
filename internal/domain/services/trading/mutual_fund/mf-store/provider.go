@@ -1,4 +1,4 @@
-package mutualfund
+package mfstore
 
 import (
 	"context"
@@ -8,25 +8,26 @@ import (
 	"time"
 
 	"github.com/udaypt/trading-app/config"
+	mutualfund "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
 )
 
 // MFSyncAPIURL is the mutual-fund master-list endpoint. Exported so it can
 // be redirected to an httptest server from this and other packages' tests.
 var MFSyncAPIURL = config.MF_API_BASE_URL
 
-// MFStoreProvider is the external-API boundary: a single, non-retrying
-// fetch of the mutual-fund master list. Retry policy lives in MFStoreSyncer.
-type MFStoreProvider struct {
+// Provider is the external-API boundary: a single, non-retrying
+// fetch of the mutual-fund master list. Retry policy lives in Syncer.
+type Provider struct {
 	client *http.Client
 }
 
-func NewMFStoreProvider() *MFStoreProvider {
-	return &MFStoreProvider{client: &http.Client{Timeout: 15 * time.Second}}
+func NewProvider() *Provider {
+	return &Provider{client: &http.Client{Timeout: 15 * time.Second}}
 }
 
 // Fetch performs a single attempt at fetching and decoding the mfapi
 // master-list response.
-func (p *MFStoreProvider) Fetch(ctx context.Context) ([]Scheme, error) {
+func (p *Provider) Fetch(ctx context.Context) ([]mutualfund.Scheme, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, MFSyncAPIURL, nil)
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func (p *MFStoreProvider) Fetch(ctx context.Context) ([]Scheme, error) {
 		return nil, fmt.Errorf("mfapi returned status code: %d", resp.StatusCode)
 	}
 
-	var schemes []Scheme
+	var schemes []mutualfund.Scheme
 	if err := json.NewDecoder(resp.Body).Decode(&schemes); err != nil {
 		return nil, fmt.Errorf("failed to decode scheme payload: %w", err)
 	}

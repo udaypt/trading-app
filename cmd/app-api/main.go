@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	mf "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
+	mfstore "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund/mf-store"
 )
 
 // main is not unit tested: http.ListenAndServe blocks until the process
@@ -23,7 +23,7 @@ func main() {
 
 	// Load the mutual-fund master list into memory before the server accepts
 	// any traffic, so search has data to serve from the moment it's up.
-	err = cntr.Invoke(func(initializer *mf.MFStoreInitializer) error {
+	err = cntr.Invoke(func(initializer *mfstore.Initializer) error {
 		initializer.Initialize(ctx)
 		return nil
 	})

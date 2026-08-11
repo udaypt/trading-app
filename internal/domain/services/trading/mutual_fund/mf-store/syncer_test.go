@@ -1,4 +1,4 @@
-package mutualfund
+package mfstore
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	mutualfund "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
 	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -48,9 +49,9 @@ func (b *syncBuffer) String() string {
 	return b.buf.String()
 }
 
-func TestMFStoreSyncer_Sync(t *testing.T) {
+func TestSyncer_Sync(t *testing.T) {
 	t.Run("success populates return value and persists via repo", func(t *testing.T) {
-		payload := []Scheme{
+		payload := []mutualfund.Scheme{
 			{SchemeCode: 10, SchemeName: "Test Fund One"},
 			{SchemeCode: 11, SchemeName: "Test Fund Two"},
 		}
@@ -70,7 +71,7 @@ func TestMFStoreSyncer_Sync(t *testing.T) {
 		mock.ExpectCommit()
 
 		repo := postgres.NewDBRepositoryWithDB(db)
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}, repo: repo}
+		syncer := &Syncer{provider: &Provider{client: client}, repo: repo}
 
 		schemes, err := syncer.Sync(context.Background())
 		require.NoError(t, err)
@@ -85,7 +86,7 @@ func TestMFStoreSyncer_Sync(t *testing.T) {
 	})
 
 	t.Run("logs but does not fail when async persistence errors", func(t *testing.T) {
-		payload := []Scheme{{SchemeCode: 20, SchemeName: "Persist Failure Fund"}}
+		payload := []mutualfund.Scheme{{SchemeCode: 20, SchemeName: "Persist Failure Fund"}}
 		client := withMFSyncServer(t, func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(payload)
@@ -98,7 +99,7 @@ func TestMFStoreSyncer_Sync(t *testing.T) {
 		mock.ExpectBegin().WillReturnError(assert.AnError)
 
 		repo := postgres.NewDBRepositoryWithDB(db)
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}, repo: repo}
+		syncer := &Syncer{provider: &Provider{client: client}, repo: repo}
 
 		schemes, err := syncer.Sync(context.Background())
 		require.NoError(t, err) // the sync call itself succeeds; persistence is fire-and-forget
@@ -114,13 +115,13 @@ func TestMFStoreSyncer_Sync(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}}
+		syncer := &Syncer{provider: &Provider{client: client}}
 		_, err := syncer.Sync(context.Background())
 		assert.Error(t, err)
 	})
 }
 
-func TestMFStoreSyncer_fetchWithRetry(t *testing.T) {
+func TestSyncer_fetchWithRetry(t *testing.T) {
 	t.Run("succeeds after transient failures within the retry budget", func(t *testing.T) {
 		var attempts int32
 		client := withMFSyncServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -129,10 +130,10 @@ func TestMFStoreSyncer_fetchWithRetry(t *testing.T) {
 				return
 			}
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode([]Scheme{{SchemeCode: 1, SchemeName: "Recovered Fund"}})
+			json.NewEncoder(w).Encode([]mutualfund.Scheme{{SchemeCode: 1, SchemeName: "Recovered Fund"}})
 		})
 
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}}
+		syncer := &Syncer{provider: &Provider{client: client}}
 		schemes, err := syncer.fetchWithRetry(context.Background())
 		require.NoError(t, err)
 		require.Len(t, schemes, 1)
@@ -147,7 +148,7 @@ func TestMFStoreSyncer_fetchWithRetry(t *testing.T) {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		})
 
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}}
+		syncer := &Syncer{provider: &Provider{client: client}}
 		_, err := syncer.fetchWithRetry(context.Background())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "after 4 attempts")
@@ -166,7 +167,7 @@ func TestMFStoreSyncer_fetchWithRetry(t *testing.T) {
 		})
 
 		ctx, cancel := context.WithCancel(context.Background())
-		syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}}
+		syncer := &Syncer{provider: &Provider{client: client}}
 
 		go func() {
 			time.Sleep(20 * time.Millisecond) // after attempt 1 fails, while backoff is sleeping
@@ -179,16 +180,16 @@ func TestMFStoreSyncer_fetchWithRetry(t *testing.T) {
 	})
 }
 
-func TestMFStoreSyncer_StartBackgroundSync(t *testing.T) {
+func TestSyncer_StartBackgroundSync(t *testing.T) {
 	// The scheduled sync fails (500), which exercises both the ticker
 	// machinery and the "scheduled sync failed" log branch in one pass; the
 	// success path of Sync itself is already covered directly by
-	// TestMFStoreSyncer_Sync.
+	// TestSyncer_Sync.
 	client := withMFSyncServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}}
+	syncer := &Syncer{provider: &Provider{client: client}}
 
 	// Redirect log output so we can deterministically detect when the
 	// background goroutine has actually returned. A plain sleep-based wait
@@ -201,7 +202,7 @@ func TestMFStoreSyncer_StartBackgroundSync(t *testing.T) {
 	defer log.SetOutput(origLogOutput)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	syncer.StartBackgroundSync(ctx, 10*time.Millisecond, func([]Scheme) {
+	syncer.StartBackgroundSync(ctx, 10*time.Millisecond, func([]mutualfund.Scheme) {
 		t.Fatal("onSync should not be called when the scheduled sync fails")
 	})
 
@@ -215,8 +216,8 @@ func TestMFStoreSyncer_StartBackgroundSync(t *testing.T) {
 	}, time.Second, 5*time.Millisecond, "expected background sync worker to stop")
 }
 
-func TestMFStoreSyncer_StartBackgroundSync_CallsOnSync(t *testing.T) {
-	payload := []Scheme{{SchemeCode: 42, SchemeName: "Ticked Fund"}}
+func TestSyncer_StartBackgroundSync_CallsOnSync(t *testing.T) {
+	payload := []mutualfund.Scheme{{SchemeCode: 42, SchemeName: "Ticked Fund"}}
 	client := withMFSyncServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(payload)
@@ -227,14 +228,14 @@ func TestMFStoreSyncer_StartBackgroundSync_CallsOnSync(t *testing.T) {
 	defer db.Close()
 	repo := postgres.NewDBRepositoryWithDB(db)
 
-	syncer := &MFStoreSyncer{provider: &MFStoreProvider{client: client}, repo: repo}
+	syncer := &Syncer{provider: &Provider{client: client}, repo: repo}
 
-	var gotSchemes []Scheme
+	var gotSchemes []mutualfund.Scheme
 	var mu sync.Mutex
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	syncer.StartBackgroundSync(ctx, 10*time.Millisecond, func(schemes []Scheme) {
+	syncer.StartBackgroundSync(ctx, 10*time.Millisecond, func(schemes []mutualfund.Scheme) {
 		mu.Lock()
 		defer mu.Unlock()
 		gotSchemes = schemes

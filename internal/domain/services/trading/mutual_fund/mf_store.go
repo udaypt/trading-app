@@ -15,8 +15,7 @@ type Scheme struct {
 
 // MFStore is an in-memory index of the mutual-fund master list, searchable
 // by name. It holds no knowledge of where schemes come from or how they get
-// refreshed — see MFStoreProvider, MFStoreSyncer, MFStoreLoader, and
-// MFStoreInitializer for that.
+// refreshed — see mf-store's Provider, Syncer, Loader, and Initializer for that.
 type MFStore struct {
 	mu      sync.RWMutex
 	schemes []Scheme

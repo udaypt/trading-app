@@ -1,4 +1,4 @@
-package mutualfund
+package mfstore
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	mutualfund "github.com/udaypt/trading-app/internal/domain/services/trading/mutual_fund"
 	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 )
 
@@ -15,37 +16,37 @@ const syncMaxAttempts = 4
 // syncRetryBaseWait is overridden in tests to keep retry-path tests fast.
 var syncRetryBaseWait = 1 * time.Second
 
-// MFStoreSyncer syncs the mutual-fund master list from the external API
+// Syncer syncs the mutual-fund master list from the external API
 // into Postgres, retrying transient failures with progressive backoff.
-type MFStoreSyncer struct {
-	provider *MFStoreProvider
+type Syncer struct {
+	provider *Provider
 	repo     *postgres.DBRepository
 }
 
-func NewMFStoreSyncer(provider *MFStoreProvider, repo *postgres.DBRepository) *MFStoreSyncer {
-	return &MFStoreSyncer{provider: provider, repo: repo}
+func NewSyncer(provider *Provider, repo *postgres.DBRepository) *Syncer {
+	return &Syncer{provider: provider, repo: repo}
 }
 
 // Sync fetches the master list from the external API (retrying on failure),
 // persists it to Postgres asynchronously, and returns the fresh schemes.
-func (s *MFStoreSyncer) Sync(ctx context.Context) ([]Scheme, error) {
-	log.Println("[MFStoreSyncer] Fetching latest mutual fund master list from API...")
+func (s *Syncer) Sync(ctx context.Context) ([]mutualfund.Scheme, error) {
+	log.Println("[Syncer] Fetching latest mutual fund master list from API...")
 
 	schemes, err := s.fetchWithRetry(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("[MFStoreSyncer] Downloaded %d schemes from API. Persisting to PostgreSQL...", len(schemes))
+	log.Printf("[Syncer] Downloaded %d schemes from API. Persisting to PostgreSQL...", len(schemes))
 
 	dbRecords := convertToDBRecords(schemes)
 
 	// Persist to PostgreSQL asynchronously so callers aren't blocked on it.
 	go func() {
 		if err := s.repo.BulkUpsertMFSchemes(dbRecords); err != nil {
-			log.Printf("[MFStoreSyncer Error] Failed to persist schemes to PostgreSQL: %v", err)
+			log.Printf("[Syncer Error] Failed to persist schemes to PostgreSQL: %v", err)
 		} else {
-			log.Printf("[MFStoreSyncer] Successfully persisted %d schemes to PostgreSQL.", len(dbRecords))
+			log.Printf("[Syncer] Successfully persisted %d schemes to PostgreSQL.", len(dbRecords))
 		}
 	}()
 
@@ -55,7 +56,7 @@ func (s *MFStoreSyncer) Sync(ctx context.Context) ([]Scheme, error) {
 // fetchWithRetry calls the provider, retrying on any failure (network
 // error, non-200 status, or malformed body) with progressively increasing
 // backoff between attempts: 1s, 2s, then 4s.
-func (s *MFStoreSyncer) fetchWithRetry(ctx context.Context) ([]Scheme, error) {
+func (s *Syncer) fetchWithRetry(ctx context.Context) ([]mutualfund.Scheme, error) {
 	var lastErr error
 
 	for attempt := 1; attempt <= syncMaxAttempts; attempt++ {
@@ -65,7 +66,7 @@ func (s *MFStoreSyncer) fetchWithRetry(ctx context.Context) ([]Scheme, error) {
 		}
 
 		lastErr = err
-		log.Printf("[MFStoreSyncer] Attempt %d/%d to fetch mutual fund master list failed: %v", attempt, syncMaxAttempts, err)
+		log.Printf("[Syncer] Attempt %d/%d to fetch mutual fund master list failed: %v", attempt, syncMaxAttempts, err)
 
 		if attempt == syncMaxAttempts {
 			break
@@ -84,7 +85,7 @@ func (s *MFStoreSyncer) fetchWithRetry(ctx context.Context) ([]Scheme, error) {
 
 // StartBackgroundSync runs Sync on a ticker, pushing every successful
 // result to onSync, until ctx is canceled.
-func (s *MFStoreSyncer) StartBackgroundSync(ctx context.Context, interval time.Duration, onSync func([]Scheme)) {
+func (s *Syncer) StartBackgroundSync(ctx context.Context, interval time.Duration, onSync func([]mutualfund.Scheme)) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -92,14 +93,14 @@ func (s *MFStoreSyncer) StartBackgroundSync(ctx context.Context, interval time.D
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("[MFStoreSyncer] Stopping background sync worker.")
+				log.Println("[Syncer] Stopping background sync worker.")
 				return
 			case <-ticker.C:
-				log.Println("[MFStoreSyncer] Executing scheduled sync...")
+				log.Println("[Syncer] Executing scheduled sync...")
 				syncCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 				schemes, err := s.Sync(syncCtx)
 				if err != nil {
-					log.Printf("[MFStoreSyncer Error] Scheduled sync failed: %v", err)
+					log.Printf("[Syncer Error] Scheduled sync failed: %v", err)
 				} else {
 					onSync(schemes)
 				}
