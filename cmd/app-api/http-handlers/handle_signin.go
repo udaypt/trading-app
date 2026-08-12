@@ -38,7 +38,7 @@ func (app *SignIn) handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, passwordHash, err := app.repo.GetCredential(req.Email)
+	userID, name, passwordHash, lastLogin, err := app.repo.AuthenticateUser(req.Email)
 	if err != nil || !security.CheckPasswordHash(req.Password, passwordHash) {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(security.AuthResponse{Status: "error", Error: "Invalid credentials"})
@@ -48,7 +48,7 @@ func (app *SignIn) handleSignIn(w http.ResponseWriter, r *http.Request) {
 	// GenerateJWT only errors if the signing key isn't []byte, and the
 	// package's key is hardcoded as []byte — unreachable without changing
 	// GenerateJWT's signature to accept an injectable key.
-	token, err := security.GenerateJWT(userID, req.Email)
+	token, err := security.GenerateJWT(userID, req.Email, name, lastLogin)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -12,8 +12,10 @@ import (
 
 // Claims represents the JWT payload
 type Claims struct {
-	UserID int64  `json:"user_id"`
-	Email  string `json:"email"`
+	UserID    int64     `json:"user_id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	LastLogin time.Time `json:"last_login"`
 	jwt.RegisteredClaims
 }
 
@@ -22,6 +24,11 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type SignUpRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
+}
 type AuthResponse struct {
 	Status string `json:"status"`
 	Token  string `json:"token,omitempty"`
@@ -41,11 +48,13 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 // GenerateJWT creates a signed JWT valid for 24 hours
-func GenerateJWT(userID int64, email string) (string, error) {
+func GenerateJWT(userID int64, email string, name string, lastLogin time.Time) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
-		UserID: userID,
-		Email:  email,
+		UserID:    userID,
+		Email:     email,
+		Name:      name,
+		LastLogin: lastLogin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

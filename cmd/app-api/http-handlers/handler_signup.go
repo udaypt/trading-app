@@ -30,7 +30,7 @@ func (app *SignUp) handleSignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req security.LoginRequest
+	var req security.SignUpRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(security.AuthResponse{Status: "error", Error: "Invalid JSON body"})
@@ -43,7 +43,9 @@ func (app *SignUp) handleSignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = app.repo.CreateNewUser(req.Email, hashedPassword)
+	name := req.Name
+
+	_, err = app.repo.CreateNewUser(req.Email, hashedPassword, name)
 	if err != nil {
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(security.AuthResponse{Status: "error", Error: "Account already exists!"})

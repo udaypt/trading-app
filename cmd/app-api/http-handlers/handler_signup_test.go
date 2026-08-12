@@ -43,9 +43,10 @@ func TestSignUp_Handle(t *testing.T) {
 		repo, _ := newRepoWithMock(t)
 		app := NewSignUp(repo)
 
-		body, _ := json.Marshal(security.LoginRequest{
+		body, _ := json.Marshal(security.SignUpRequest{
 			Email:    "user@example.com",
 			Password: strings.Repeat("a", 73),
+			Name:     "Test user",
 		})
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
 		rec := httptest.NewRecorder()
@@ -59,7 +60,7 @@ func TestSignUp_Handle(t *testing.T) {
 		mock.ExpectQuery("INSERT INTO users").WillReturnError(errors.New("duplicate key"))
 		app := NewSignUp(repo)
 
-		body, _ := json.Marshal(security.LoginRequest{Email: "dupe@example.com", Password: "pwd"})
+		body, _ := json.Marshal(security.SignUpRequest{Email: "dupe@example.com", Password: "pwd", Name: "Test name"})
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
 		rec := httptest.NewRecorder()
 		app.Handle(rec, req)
@@ -73,7 +74,7 @@ func TestSignUp_Handle(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(1)))
 		app := NewSignUp(repo)
 
-		body, _ := json.Marshal(security.LoginRequest{Email: "new@example.com", Password: "pwd"})
+		body, _ := json.Marshal(security.SignUpRequest{Email: "new@example.com", Password: "pwd", Name: "test user"})
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
 		rec := httptest.NewRecorder()
 		app.Handle(rec, req)

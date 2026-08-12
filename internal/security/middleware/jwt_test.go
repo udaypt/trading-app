@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/udaypt/trading-app/internal/security"
 
@@ -70,7 +71,7 @@ func TestJWT(t *testing.T) {
 	})
 
 	t.Run("valid token calls next with claims in context", func(t *testing.T) {
-		token, err := security.GenerateJWT(9, "user@example.com")
+		token, err := security.GenerateJWT(9, "user@example.com", "test user", time.Now())
 		require.NoError(t, err)
 
 		var gotClaims *security.Claims

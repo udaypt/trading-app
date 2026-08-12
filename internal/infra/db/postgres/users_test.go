@@ -14,10 +14,10 @@ func TestDBRepository_CreateNewUser(t *testing.T) {
 	t.Run("returns generated id", func(t *testing.T) {
 		repo, mock := newMockRepo(t)
 		mock.ExpectQuery("INSERT INTO users").
-			WithArgs("user@example.com", "hashed-pwd").
+			WithArgs("user@example.com", "hashed-pwd", "test user").
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(42)))
 
-		id, err := repo.CreateNewUser("user@example.com", "hashed-pwd")
+		id, err := repo.CreateNewUser("user@example.com", "hashed-pwd", "test user")
 		require.NoError(t, err)
 		assert.Equal(t, int64(42), id)
 	})
@@ -27,7 +27,7 @@ func TestDBRepository_CreateNewUser(t *testing.T) {
 		mock.ExpectQuery("INSERT INTO users").
 			WillReturnError(errors.New("duplicate key value violates unique constraint"))
 
-		id, err := repo.CreateNewUser("dupe@example.com", "hashed-pwd")
+		id, err := repo.CreateNewUser("dupe@example.com", "hashed-pwd", "test name")
 		assert.Error(t, err)
 		assert.Equal(t, int64(0), id)
 	})
@@ -40,10 +40,11 @@ func TestDBRepository_GetCredential(t *testing.T) {
 			WithArgs("user@example.com").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "password_hash"}).AddRow(int64(7), "hashed-pwd"))
 
-		id, hash, err := repo.GetCredential("user@example.com")
+		id, name, hash, _, err := repo.AuthenticateUser("user@example.com")
 		require.NoError(t, err)
 		assert.Equal(t, int64(7), id)
 		assert.Equal(t, "hashed-pwd", hash)
+		assert.Equal(t, "test user", name)
 	})
 
 	t.Run("unknown email returns error", func(t *testing.T) {
@@ -52,9 +53,10 @@ func TestDBRepository_GetCredential(t *testing.T) {
 			WithArgs("missing@example.com").
 			WillReturnError(sql.ErrNoRows)
 
-		id, hash, err := repo.GetCredential("missing@example.com")
+		id, name, hash, _, err := repo.AuthenticateUser("missing@example.com")
 		assert.ErrorIs(t, err, sql.ErrNoRows)
 		assert.Equal(t, int64(0), id)
 		assert.Empty(t, hash)
+		assert.Empty(t, name)
 	})
 }

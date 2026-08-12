@@ -32,7 +32,7 @@ func TestHashPassword_CheckPasswordHash(t *testing.T) {
 
 func TestGenerateJWT_ValidateJWT(t *testing.T) {
 	t.Run("round trips claims", func(t *testing.T) {
-		token, err := GenerateJWT(7, "user@example.com")
+		token, err := GenerateJWT(7, "user@example.com", "test user", time.Now())
 		require.NoError(t, err)
 		require.NotEmpty(t, token)
 
