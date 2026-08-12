@@ -7,9 +7,10 @@ A trading dashboard for Indian stocks and mutual funds: search assets, view hist
 ```
 trading-dashboard/
 ├── backend/    # Go REST API (this directory)
-├── frontend/
-│   └── trading-app/   # React (Create React App) frontend
-└── data/db/trading.sql   # Postgres schema, loaded by `make setup-db`
+|   └── data/db/trading.sql   # Postgres schema, loaded by `make setup-db`
+└── frontend/
+    └── trading-app/   # React (Create React App) frontend
+
 ```
 
 The backend's `docker-compose.yaml` and `make setup-db` reference `../data/db/trading.sql`, so keep this repo layout intact (don't clone `backend/` on its own).
