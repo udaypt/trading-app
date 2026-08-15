@@ -4,12 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/udaypt/trading-app/config"
 	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 )
+
+// StockHistoryAPIURL is the stock price-history endpoint. Exported so it
+// can be redirected to an httptest server from this and other packages' tests.
+var StockHistoryAPIURL = config.STOCK_HISTORY_API_URL
 
 // Stock Historical Chart Structs
 type ChartResponse struct {
@@ -40,10 +45,6 @@ func (h *History) Fetch(ctx context.Context, symbol string, days int) ([]trading
 	return byExternalAPI(ctx, symbol, days)
 }
 
-// StockHistoryAPIURL is the stock price-history endpoint. Exported so it
-// can be redirected to an httptest server from this and other packages' tests.
-var StockHistoryAPIURL = config.STOCK_HISTORY_API_URL
-
 func byExternalAPI(ctx context.Context, symbol string, days int) ([]trading.PricePoint, error) {
 	rangeParam := "1mo"
 	if days > 30 && days <= 90 {
@@ -55,7 +56,7 @@ func byExternalAPI(ctx context.Context, symbol string, days int) ([]trading.Pric
 	}
 
 	urlStr := fmt.Sprintf(StockHistoryAPIURL, symbol, rangeParam)
-
+	log.Println("STOCKS API: ", urlStr)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
 	if err != nil {
 		return nil, err
@@ -84,7 +85,7 @@ func byExternalAPI(ctx context.Context, symbol string, days int) ([]trading.Pric
 		return nil, fmt.Errorf("missing price indicators")
 	}
 	closes := result.Indicators.Quote[0].Close
-
+	log.Println(timestamps)
 	var points []trading.PricePoint
 	for i, ts := range timestamps {
 		if i >= len(closes) || closes[i] == 0 {

@@ -49,6 +49,16 @@ $ go run ./cmd/app-api/
 ```
 The API listens on `http://localhost:8080`.
 
+### Run everything via Docker Compose
+
+Alternatively, run the backend API itself as a container alongside Postgres and Adminer — no local Go toolchain needed:
+```
+$ make up
+```
+This builds the backend image from `Dockerfile` and starts it on `http://localhost:8080`, wired to the `db` service via the `DB_CONNECTION_STRING` env var (`docker-compose.yaml`). Run `make setup-db` once to load the schema, same as above.
+
+`make up` also builds and starts the frontend (`../frontend/trading-app`) as a container on `http://localhost:3000` — see that project's `README.md` for details.
+
 ### Run tests
 ```
 $ make test
@@ -78,6 +88,7 @@ All endpoints are prefixed with `/api/v1`. `/search` and `/market-data` require 
 | Service | Port |
 |---|---|
 | Backend API | 8080 |
+| Frontend (when run via `make up`) | 3000 |
 | Adminer (DB admin UI) | 8090 |
 | Postgres | 5432 |
 

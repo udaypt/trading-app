@@ -3,6 +3,8 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"os"
+
 	"github.com/udaypt/trading-app/config"
 
 	_ "github.com/lib/pq"
@@ -12,9 +14,19 @@ type DBRepository struct {
 	db *sql.DB
 }
 
-// dbConnectionString is overridden in tests to exercise the connect/ping
-// error branches without a real Postgres instance.
-var dbConnectionString = config.DB_CONNECTION_STRING
+// dbConnectionString defaults to the local dev connection string but can be
+// overridden by the DB_CONNECTION_STRING env var, which docker-compose sets
+// to point the backend container at the "db" service instead of localhost.
+// Also overridden directly in tests to exercise the connect/ping error
+// branches without a real Postgres instance.
+var dbConnectionString = envOrDefault("DB_CONNECTION_STRING", config.DB_CONNECTION_STRING)
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 func NewDBRepository() (*DBRepository, error) {
 	// sql.Open only validates the driver name, never the DSN — lib/pq

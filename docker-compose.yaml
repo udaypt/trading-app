@@ -28,5 +28,29 @@ services:
     depends_on:
       - db
 
+  backend:
+    build: .
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      DB_CONNECTION_STRING: postgres://postgres:example@db:5432/trading_dashboard?sslmode=disable
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ../frontend/trading-app
+      args:
+        # CRA inlines this into the JS bundle at build time, so it must be a
+        # URL the browser can reach, i.e. the backend's published host port
+        # (not the "backend" in-network service name).
+        REACT_APP_API_BASE_URL: http://localhost:8080
+    restart: always
+    ports:
+      - 3000:80
+    depends_on:
+      - backend
+
 volumes:
   pgdata:

@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/udaypt/trading-app/config"
-	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/udaypt/trading-app/config"
+	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 )
 
 // MFapi Historical NAV Structs
@@ -42,7 +44,7 @@ var MFHistoryAPIURL = config.MF_HISTORY_API_URL
 
 func byExternalAPI(ctx context.Context, schemeCode string, days int) ([]trading.PricePoint, error) {
 	urlStr := fmt.Sprintf(MFHistoryAPIURL, schemeCode)
-
+	log.Println("Mutual Fund API: ", urlStr)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
 	if err != nil {
 		return nil, err

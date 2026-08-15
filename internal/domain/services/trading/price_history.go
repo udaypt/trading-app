@@ -65,7 +65,7 @@ func (ph *PriceHistory) Get(ctx context.Context, schemeCode string, days int) ([
 
 // fetch asset pricing details from an external api
 func (ph *PriceHistory) fetchFromAPI(ctx context.Context, schemeCode string, days int) ([]trading.PricePoint, error) {
-	log.Println("[Pricing API] Trying to fetch from external api...")
+	log.Printf("[Pricing API] Trying to fetch %s from external api...\n", ph.assetAPI.GetAssetType())
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
