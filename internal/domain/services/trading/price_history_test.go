@@ -62,12 +62,17 @@ func TestNewPriceHistory(t *testing.T) {
 func TestPriceHistory_Get(t *testing.T) {
 	apiPoints := []trading.PricePoint{{Date: "2024-02-01", Price: 42}}
 
-	t.Run("serves from cache when db data is stale enough and present", func(t *testing.T) {
+	t.Run("serves from cache when db data is stale enough, present, and fresh", func(t *testing.T) {
 		repo, mock := newRepoForTest(t)
 		staleDate := time.Now().AddDate(0, 0, -60).Format(time.RFC3339)
 		mock.ExpectQuery("SELECT last_nday_fetched_date").
 			WithArgs("RELIANCE.NS").
 			WillReturnRows(sqlmock.NewRows([]string{"last_nday_fetched_date"}).AddRow(staleDate))
+
+		recentlyUpdated := time.Now().Add(-1 * time.Hour)
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("RELIANCE.NS").
+			WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(recentlyUpdated))
 
 		cachedPoints := []trading.PricePoint{{Date: "2024-01-01", Price: 99}}
 		rows := sqlmock.NewRows([]string{"price_date", "price"}).AddRow("2024-01-01T00:00:00Z", 99.0)
@@ -84,6 +89,59 @@ func TestPriceHistory_Get(t *testing.T) {
 		assert.Equal(t, cachedPoints, points)
 		assert.Equal(t, 0, fake.calls)
 		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("refetches from API when db data covers the range but is older than 24h", func(t *testing.T) {
+		repo, mock := newRepoForTest(t)
+		staleDate := time.Now().AddDate(0, 0, -60).Format(time.RFC3339)
+		mock.ExpectQuery("SELECT last_nday_fetched_date").
+			WithArgs("RELIANCE.NS").
+			WillReturnRows(sqlmock.NewRows([]string{"last_nday_fetched_date"}).AddRow(staleDate))
+
+		staleUpdatedAt := time.Now().Add(-25 * time.Hour)
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("RELIANCE.NS").
+			WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(staleUpdatedAt))
+		mock.ExpectExec("INSERT INTO assets").WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectBegin()
+		prep := mock.ExpectPrepare("INSERT INTO price_history")
+		prep.ExpectExec().WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		fake := &fakeAssetAPI{assetType: trading.Stock, fetchFn: func(ctx context.Context, id string, d int) ([]trading.PricePoint, error) {
+			return apiPoints, nil
+		}}
+		ph := &PriceHistory{repo: repo, assetAPI: fake}
+
+		points, err := ph.Get(context.Background(), "RELIANCE.NS", 30)
+		require.NoError(t, err)
+		assert.Equal(t, apiPoints, points)
+		assert.Equal(t, 1, fake.calls)
+
+		assert.Eventually(t, func() bool {
+			return mock.ExpectationsWereMet() == nil
+		}, time.Second, 10*time.Millisecond, "expected async persistence to run")
+	})
+
+	t.Run("falls back to API when GetPriceHistoryUpdatedAt errors", func(t *testing.T) {
+		repo, mock := newRepoForTest(t)
+		staleDate := time.Now().AddDate(0, 0, -60).Format(time.RFC3339)
+		mock.ExpectQuery("SELECT last_nday_fetched_date").
+			WithArgs("RELIANCE.NS").
+			WillReturnRows(sqlmock.NewRows([]string{"last_nday_fetched_date"}).AddRow(staleDate))
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("RELIANCE.NS").
+			WillReturnError(errors.New("db error"))
+
+		fake := &fakeAssetAPI{assetType: trading.Stock, fetchFn: func(ctx context.Context, id string, d int) ([]trading.PricePoint, error) {
+			return apiPoints, nil
+		}}
+		ph := &PriceHistory{repo: repo, assetAPI: fake}
+
+		points, err := ph.Get(context.Background(), "RELIANCE.NS", 30)
+		require.NoError(t, err)
+		assert.Equal(t, apiPoints, points)
+		assert.Equal(t, 1, fake.calls)
 	})
 
 	t.Run("falls back to API when GetLastNDaysDate errors", func(t *testing.T) {
@@ -141,6 +199,9 @@ func TestPriceHistory_Get(t *testing.T) {
 		mock.ExpectQuery("SELECT last_nday_fetched_date").
 			WithArgs("RELIANCE.NS").
 			WillReturnRows(sqlmock.NewRows([]string{"last_nday_fetched_date"}).AddRow(staleDate))
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("RELIANCE.NS").
+			WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(time.Now().Add(-1 * time.Hour)))
 		mock.ExpectQuery("SELECT price_date, price").
 			WithArgs("RELIANCE.NS", 30).
 			WillReturnError(errors.New("db error"))
@@ -162,6 +223,9 @@ func TestPriceHistory_Get(t *testing.T) {
 		mock.ExpectQuery("SELECT last_nday_fetched_date").
 			WithArgs("RELIANCE.NS").
 			WillReturnRows(sqlmock.NewRows([]string{"last_nday_fetched_date"}).AddRow(staleDate))
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("RELIANCE.NS").
+			WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(time.Now().Add(-1 * time.Hour)))
 		mock.ExpectQuery("SELECT price_date, price").
 			WithArgs("RELIANCE.NS", 30).
 			WillReturnRows(sqlmock.NewRows([]string{"price_date", "price"}))

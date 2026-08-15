@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 )
 
@@ -21,7 +23,8 @@ func (r *DBRepository) BulkUpsertPriceHistory(assetID string, points []trading.P
 		INSERT INTO price_history (asset_id, price_date, price)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (asset_id, price_date) DO UPDATE SET
-			price = EXCLUDED.price;
+			price = EXCLUDED.price,
+			updated_at = now();
 	`)
 	if err != nil {
 		return err
@@ -73,4 +76,22 @@ func (r *DBRepository) GetPriceHistory(assetID string, days int) ([]trading.Pric
 	}
 
 	return points, nil
+}
+
+// GetPriceHistoryUpdatedAt reports when this asset's price history was last
+// refreshed from the external pricing API, so callers can decide whether the
+// cached rows are still fresh enough to serve.
+func (r *DBRepository) GetPriceHistoryUpdatedAt(assetID string) (time.Time, error) {
+	query := `
+		SELECT MAX(updated_at)
+		FROM price_history
+		WHERE asset_id = $1;
+	`
+	var updatedAt time.Time
+	err := r.db.QueryRow(query, assetID).Scan(&updatedAt)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return updatedAt, nil
 }

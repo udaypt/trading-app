@@ -3,6 +3,7 @@ package postgres
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/udaypt/trading-app/internal/domain/usecase/trading"
 
@@ -108,6 +109,40 @@ func TestDBRepository_GetPriceHistory(t *testing.T) {
 		mock.ExpectQuery("SELECT price_date, price").WillReturnRows(rows)
 
 		_, err := repo.GetPriceHistory("RELIANCE.NS", 3)
+		assert.Error(t, err)
+	})
+}
+
+func TestDBRepository_GetPriceHistoryUpdatedAt(t *testing.T) {
+	t.Run("returns the most recent update timestamp", func(t *testing.T) {
+		repo, mock := newMockRepo(t)
+		want := time.Date(2024, 1, 3, 12, 0, 0, 0, time.UTC)
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("RELIANCE.NS").
+			WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(want))
+
+		got, err := repo.GetPriceHistoryUpdatedAt("RELIANCE.NS")
+		require.NoError(t, err)
+		assert.True(t, want.Equal(got))
+	})
+
+	t.Run("propagates query error", func(t *testing.T) {
+		repo, mock := newMockRepo(t)
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("RELIANCE.NS").
+			WillReturnError(errors.New("db down"))
+
+		_, err := repo.GetPriceHistoryUpdatedAt("RELIANCE.NS")
+		assert.Error(t, err)
+	})
+
+	t.Run("errors when the asset has no cached rows", func(t *testing.T) {
+		repo, mock := newMockRepo(t)
+		mock.ExpectQuery("SELECT MAX\\(updated_at\\)").
+			WithArgs("UNKNOWN").
+			WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(nil))
+
+		_, err := repo.GetPriceHistoryUpdatedAt("UNKNOWN")
 		assert.Error(t, err)
 	})
 }

@@ -33,13 +33,17 @@ CREATE TABLE IF NOT EXISTS price_history (
     price_date DATE NOT NULL,
     price NUMERIC(12, 4) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
     -- Ensure no duplicate price entries for the same asset on the same day
     CONSTRAINT unique_asset_date UNIQUE (asset_id, price_date)
 );
 
+-- Re-runnable for databases created before updated_at existed
+ALTER TABLE price_history ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
 -- Index for fast time-series range queries by asset_id and date
-CREATE INDEX IF NOT EXISTS idx_price_history_asset_date 
+CREATE INDEX IF NOT EXISTS idx_price_history_asset_date
 ON price_history(asset_id, price_date DESC);
 
 

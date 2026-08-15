@@ -12,6 +12,10 @@ import (
 	"github.com/udaypt/trading-app/internal/infra/db/postgres"
 )
 
+// cacheFreshness is how long cached price history is served before it's
+// considered stale and refreshed from the external pricing API.
+const cacheFreshness = 24 * time.Hour
+
 type PriceHistory struct {
 	repo     *postgres.DBRepository
 	assetAPI trading.PricingHistoryAPI
@@ -47,6 +51,19 @@ func (ph *PriceHistory) Get(ctx context.Context, schemeCode string, days int) ([
 	nDaysDate := time.Now().AddDate(0, 0, -days)
 
 	if lastNDayDate != "" && (oldTime.Before(nDaysDate) || oldTime.Equal(nDaysDate)) {
+		updatedAt, err := ph.repo.GetPriceHistoryUpdatedAt(schemeCode)
+		if err != nil {
+			log.Println("[Cache Miss] Could not fetch price history freshness from postgres", err.Error())
+
+			return ph.fetchFromAPI(ctx, schemeCode, days)
+		}
+
+		if time.Since(updatedAt) >= cacheFreshness {
+			log.Println("[Cache Stale] Cached price history is older than 24h, refreshing from API")
+
+			return ph.fetchFromAPI(ctx, schemeCode, days)
+		}
+
 		dbPoints, err := ph.repo.GetPriceHistory(schemeCode, days)
 		if err != nil {
 			log.Println("[DB Error] Could not fetch chached data from postgres")
